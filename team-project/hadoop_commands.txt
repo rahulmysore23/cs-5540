@@ -1,0 +1,67 @@
+# copy dataset to trusted mysql folder
+docker cp ~/dataset/filtered_output.csv ra_mysql:/var/lib/mysql-files/filtered_output.csv
+
+# MySQL commands
+
+mysql -u root -p example
+
+CREATE DATABASE github;
+
+USE github;
+
+CREATE TABLE github_projects (
+    name VARCHAR(255),
+    stars INT,
+    forks INT,
+    watchers INT,
+    pullRequests INT,
+    primaryLanguage VARCHAR(50),
+    defaultBranchCommitCount VARCHAR(100),
+    createdAt VARCHAR(100),
+    licence VARCHAR(255)
+);
+
+LOAD DATA INFILE '/var/lib/mysql-files/filtered_output.csv'
+INTO TABLE github_projects
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+(name, stars, forks, watchers, pullRequests, primaryLanguage, defaultBranchCommitCount, createdAt, licence);
+
+
+# Hive commands
+
+CREATE DATABASE github;
+
+USE github;
+
+CREATE TABLE github_repos (
+    name VARCHAR(255),
+    stars INT,
+    forks INT,
+    watchers INT,
+    pullRequests INT,
+    primaryLanguage VARCHAR(50),
+    defaultBranchCommitCount VARCHAR(100),
+    createdAt VARCHAR(100),
+    licence VARCHAR(255)
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+
+SELECT * FROM github_repos LIMIT 10;
+
+
+# SQOOP command
+
+sqoop import \
+  --connect jdbc:mysql://mysql:3306/github \
+  --username root \
+  --password example \
+  --table github_projects --fields-terminated-by ',' \
+  --columns "name,stars,forks,watchers,pullRequests,primaryLanguage,defaultBranchCommitCount,createdAt,licence" \
+  --hive-import --hive-table github.github_repos \
+  --target-dir /github_data \
+  -m 1
+
